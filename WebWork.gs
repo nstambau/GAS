@@ -68,24 +68,69 @@ function updateGradesWw(){
   var cache = CacheService.getScriptCache()
   
   var csvString = cache.get("Ww_csvString")
+  csvString = ''
   
   if(!csvString){ // No data stored in cache? Let's get some fresh data!
     var prop = PropertiesService.getScriptProperties()
     var username = prop.getProperty("username")   ///   '+username+'
     
-    var login = Ww_login()
+    var login = Ww_login(true)
     
     var keys = login.split("%")
     var key = keys[1].slice(2)
     
-    // First, we refresh the csv file online
-    
+
+    // First, we get the list of all HomeworkSet Names
+
     var headers = {
-      "Connection": "keep-alive",
       "Cookie": login
     }
     
-    var payload = "" // Pulls same report as if you go to the "Grading Tools" page in WebWork. 
+    var options = {
+      "Host": host,
+      "method": "GET",
+      "headers": headers,
+      "followRedirects": false
+    }
+    
+    var getList = UrlFetchApp.fetch("https://"+host+"/webwork2/"+course+"/instructor/sets2/?effectiveUser="+username+"&user="+username+"&theme=&key="+key,options).getContentText().split('"Show/Hide Site Description"')
+    getList = getList[1].split('<!-- state data here -->')
+    getList = getList[1].split('value="')
+
+    var sets = []
+    for(var ii=1; ii<getList.length; ii++){    
+      var set = getList[ii]
+      if(set.indexOf('prev_visible_sets')>0){ii = getList.length}
+      sets.push(set.split('"').shift())
+    }
+
+    
+    // Second, we genereate the csv with the data
+
+    var bdy = '--3141592653590'
+               
+    var headers = {
+      "Connection": "keep-alive",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Content-Type": "multipart/form-data; boundary="+bdy,
+      "Cookie": login
+    }
+    var linesep = '\r\n'
+    
+    var payload = "--" +bdy+linesep+'Content-Disposition: form-data; name=  "user"; '+linesep+linesep+ username +linesep
+    payload += "--" +bdy+linesep+'Content-Disposition: form-data; name = "effectiveUser"; ' +linesep+linesep+ username +linesep
+    payload += "--" +bdy+linesep+'Content-Disposition: form-data; name = "key"; ' +linesep+linesep+ key +linesep
+    payload += "--" +bdy+linesep+'Content-Disposition: form-data; name = "theme"; ' +linesep+linesep+ linesep
+    payload += "--" +bdy+linesep+'Content-Disposition: form-data; name = "scoreSelected"; '+linesep+linesep+'1'+linesep
+    for(var ii = 0; ii<sets.length; ii++){
+      payload += "--" +bdy+linesep+'Content-Disposition: form-data; name = "selectedSet"; '+linesep+linesep+sets[ii]+linesep
+    }
+    payload += "--" +bdy+linesep+'Content-Disposition: form-data; name = "padFields"; '+linesep+linesep+'1' +linesep
+    payload += "--" +bdy+linesep+'Content-Disposition: form-data; name = "score-sets"; '+linesep+linesep+' Score selected set(s) and save to:' +linesep
+    payload += "--" +bdy+linesep+'Content-Disposition: form-data; name = "scoringFileName"; '+linesep+linesep+ course+'_totals.csv'+linesep
+    payload += "--" +bdy+'--'
     
     
     var options = {
@@ -100,14 +145,17 @@ function updateGradesWw(){
     
     
     var text = response.getContentText()
-    var temp1 = text.split('.csv') // name of the csvfile
+    var temp1 = text.split('.csv') // looks for csv to confim success
+    
     if(temp1.length<2){
+      Logger.log(text)
       Ww_login(true)
       throw("Login Refreshed - Please try again")
     }
-    var filename = temp1[0].split('"').pop()+".csv"  
     
-    // Second, grab the updated csv file!
+    var filename = course+'_totals.csv'
+    
+    // Finally, we grab the updated csv file!
     
     var options = {
       "Host": "webwork.wit.edu",
@@ -161,7 +209,7 @@ function updateGradesWw(){
     }
   }
   
-  var SS = SpreadsheetApp.openById("1o-KvoqXjVcUryzAw0ok_ikBu5Zt2Md2mxz4wAFVZZmU")
+  var SS = SpreadsheetApp.openById(targetSS)
   var sheet = SS.getSheetByName("1850")
   var sheetData = sheet.getDataRange().getValues()
   
@@ -193,7 +241,6 @@ function updateGradesWw(){
       students[id]["grades"][headers[jj]] = student[jj]/values[jj]
     }
 
-
     if(checkCounter>0){
       sheet.getRange(1, col, newCol.length).setValues(newCol).setNumberFormat("##0%")
     } else {
@@ -203,6 +250,7 @@ function updateGradesWw(){
     
   }
 }
+
 
 function runOnce() {
   
