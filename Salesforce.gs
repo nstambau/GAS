@@ -1,5 +1,25 @@
 var host = "srm.my.salesforce.com" // Change to your host, as needed.
 
+
+
+function initialize(){
+  
+  // Loads your credientials into the Library. Only run when credentials change.
+  
+  var uProps = {
+//    'userEmail': '******@***.***',
+//    'MFpassword':"******", // 
+//    'MFsecToken':"******"  // 
+  };
+
+  var prop = PropertiesService.getScriptProperties()
+  prop.setProperty("Info", JSON.stringify(uProps));
+  
+// Run this Function to load your values into the user properties. 
+
+}
+
+
 /**
 * Returns the results of a given SOQL query
 *
@@ -224,7 +244,7 @@ function fetch_(url){
   
 //  var user = Session.getActiveUser().getEmail()
   
-  var sessionID = loginMF_()
+  var sessionID = loginSF_()
   
   var httpheaders = {Authorization: "OAuth " + sessionID};
   var parameters = {headers: httpheaders, "muteHttpExceptions": true}; 
@@ -291,5 +311,65 @@ function Wunzip(compress){
 //  Logger.log(typeof string)
   
   return string
+  
+}
+
+
+
+function loginSF_(){
+
+ 
+  var scriptCache = CacheService.getScriptCache()
+  var sessionId = scriptCache.get("sessionId")
+  
+  if(sessionId){
+    scriptCache.put("sessionId", sessionId, 30*60); // recache for 30 minutes. 
+  return sessionId
+  }
+  
+  var prop = PropertiesService.getScriptProperties()
+  var uProps = JSON.parse(prop.getProperty("Info"));
+  
+  try{
+  var userEmail = uProps.userEmail
+  var MFpassword = uProps.MFpassword
+  var MFsecToken = uProps.MFsecToken
+} catch (err){
+  throw "Login info wasn't found in properties. Did you run the Initialize function?"
+  }
+  
+  var message="<?xml version='1.0' encoding='utf-8'?>" 
+  +"<soap:Envelope xmlns:soap='http://schemas.xmlsoap.org/soap/envelope/' " 
+  +   "xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xsd='http://"
+  +   "www.w3.org/2001/XMLSchema'>" 
+  +  "<soap:Body>" 
+  +     "<login xmlns='urn:partner.soap.sforce.com'>" 
+  +        "<username>" + userEmail + "</username>"
+  +        "<password>"+ MFpassword + MFsecToken + "</password>"
+  +     "</login>" 
+  +  "</soap:Body>" 
+  + "</soap:Envelope>";
+  
+  
+  var httpheaders = { SOAPAction: "login" };
+  var parameters = {method: "POST", contentType: "text/xml", headers: httpheaders, payload: message, muteHttpExceptions: true};
+  var result = UrlFetchApp.fetch("https://login.salesforce.com/services/Soap/u/39.0", parameters).getContentText();
+  
+  if(result.indexOf("Fault")>0){
+    var err = XmlService.parse(result)
+    err = XMLtoAssocArray(err)
+    Logger.log(err)
+    Logger.log("Login did not work. Aborting.")
+    throw(err + "\n Login did not work. Aborting.")
+  }
+
+  var id = result.split("sessionId")
+  var sessionId = id[1].slice(1,-2)
+  
+  Logger.log("Cached MF Login")
+  
+  scriptCache.put("sessionId", sessionId, 60*60);    // Puts session ID into cache for 1 hour
+
+  return sessionId
   
 }
