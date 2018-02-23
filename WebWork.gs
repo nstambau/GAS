@@ -216,8 +216,7 @@ function updateGradesWw(){
   for (var jj=6; jj<headers.length-2; jj++){
     var set = headers[jj]
     var col = sheetData[0].indexOf(set)+1
-    if(col<0) { // Assignment not found. 
-      return
+    if(col<1) { // Assignment not found. 
       var col = sheet.getLastColumn()+1
       sheet.insertColumnAfter(col-1)
     }
