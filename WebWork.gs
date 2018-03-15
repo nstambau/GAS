@@ -1,3 +1,5 @@
+// Extracts course gradebook from WebWork
+
 // Typical webwork installation has login screen at:
 //   https://[host]/webwork2/[course]
 
