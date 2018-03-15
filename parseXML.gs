@@ -1,4 +1,5 @@
-// Converts XML to a keyed array in JavaScript
+// Converts XML to a keyed array in JavaScript. Repeated entry keys convert value to an array of values.
+// Script is self-referencing to work inductively. 
 
 function XMLtoAssocArray(xml) {
   
