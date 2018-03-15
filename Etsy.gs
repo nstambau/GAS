@@ -1,3 +1,9 @@
+// This script implements the Etsy API. You'll need to register your app here:
+// https://www.etsy.com/developers/documentation/getting_started/register
+// 
+// The rest of this script uses an order number to extract all relevant data on that order.
+
+
 var apiKey = "*****"  // update!
 var sharedSecret = "*****" // update!
 var appName = "*****" // update!
