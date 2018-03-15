@@ -1,6 +1,10 @@
-var host = "srm.my.salesforce.com" // Change to your host, as needed.
+// This script stores salesforce credentials in "Properties" and then executes SOQL or SOSL queries. 
+// Query results are stored in cache, and login token is stored in cache as well. 
+// To use: Complete data in the "initialize" routine, and complete the "host" data as well. 
+// Run once, and then remove your sensitive information. Then use getSOQL or getSOSL to send
+// a query/search to salesforce, and the data is returned as a 2D array with headers.
 
-
+var host = "***.**.salesforce.com" // Change to your host, as needed.
 
 function initialize(){
   
@@ -78,7 +82,7 @@ function getSOQL(soql){
   //  Logger.log(fields)
   
   
-  // now we send that soql query to mentorforce
+  // now we send that soql query to salesforce
   try{
     var results = fetch_("https://"+host+"/services/data/v39.0/query?q=" + encodeURIComponent(soql));
     if (results === null || results === undefined) { return "Query was not successful. Make sure it's working on the workbench! (http://workbench.developerforce.com/)" }
@@ -197,7 +201,8 @@ function getSOSL(sosl){
   // Logger.log(fields)
   
   
-  // now we send that soql query to mentorforce
+  // now we send that soql query to salesforce
+  
   try{
     var results = fetch_("https://"+host+"/services/data/v39.0/search?q=" + encodeURIComponent(sosl));
     //    Logger.log(results)
@@ -314,6 +319,9 @@ function Wunzip(compress){
   
 }
 
+function shortKeyHash_(input) {
+    return Utilities.base64Encode( Utilities.computeDigest( Utilities.DigestAlgorithm.SHA_1, input));
+}
 
 
 function loginSF_(){
