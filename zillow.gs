@@ -1,3 +1,10 @@
+// This is part of a script we used to find a house in Boston, MA. The goal is to use Google Maps to 
+// narrow down potential houses based on commute time to one (or two) locations. 
+
+// Note that this does not use the Zillow API, since I wanted to have access to the ZEstimate, which is
+// blocked in the API. This script parses HTML to extract the data.
+
+
 function testRun() {
   
   // This looks for houses that are close to two points of interest. 
@@ -17,14 +24,16 @@ function testRun() {
   }
   
   // Optional: Output to a google sheet
-  var docID = "1UJFUvLI7zW8h1at8opgL8bLoUrrbZISTYJY4C9k6ys4"
+  var docID = "******"
   
-  if(docID){
+  try {
     var SS = SpreadsheetApp.openById(docID)
     var sheet = SS.getSheetByName("Zillow")
     if(!sheet){
       SS.insertSheet("Zillow")
     }
+  } catch (err) {
+    throw("docID not valid. Create a spreadsheet and insert it's docID above")
   }
 
 // Next, we use some simple logic to find a region of interest. An adaptive modification can be made if needed.
@@ -46,9 +55,10 @@ function testRun() {
     var geocode = [Number(property[0]), Number(property[1])]
     
     // Google maps has a low quota for getting directions, so we filter out properties here
-    if (price>3000000){continue}
-    if (sqft < 500){continue}
-    if (beds<2){continue}
+    if (price>3000000){continue} // skip houses over $3M
+    if (sqft < 500){continue} // skip houses under 500 sqft
+    if (beds<2){continue} // skip houses with 0 or 1 bedroom
+    // add more filters here as needed.
   
     var time1 = getDist(geocode, geocode1)
     var time2 = getDist(geocode, geocode2)
